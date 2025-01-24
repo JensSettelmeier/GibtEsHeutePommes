@@ -1,3 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">FriteFiresChecker</string>
+<string name="app_name">FriteFiresChecker</string>
+<string name="title">Gibt es heute Pommes?</string>
+<string name="button_check">Check</string>
+<string name="output_default">Press "Check" to see availability</string>
+<string name="output_yes">Yes</string>
+<string name="output_no">No</string>
 </resources>
