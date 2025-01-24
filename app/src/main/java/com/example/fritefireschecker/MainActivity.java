@@ -6,6 +6,10 @@ import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
 public class MainActivity extends AppCompatActivity {
 
     private TextView outputTextView;
@@ -24,24 +28,61 @@ public class MainActivity extends AppCompatActivity {
         checkButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: Replace the following with actual availability logic
-                boolean isAvailable = getFriteFriesAvailability();
+                checkMenusAvailability(new AvailabilityCallback() {
+                    @Override
+                    public void onResult(boolean available) {
+                        runOnUiThread(() -> outputTextView.setText(available ? R.string.output_yes : R.string.output_no));
+                    }
 
-                if (isAvailable) {
-                    outputTextView.setText(R.string.output_yes);
-                } else {
-                    outputTextView.setText(R.string.output_no);
-                }
+                    @Override
+                    public void onError(String error) {
+                        runOnUiThread(() -> outputTextView.setText(error));
+                    }
+                });
             }
         });
     }
 
-    /**
-     * Dummy method to simulate availability check.
-     * Replace this with actual logic to fetch data from the Mensa website.
-     */
-    private boolean getFriteFriesAvailability() {
-        // For demonstration, randomly return true or false
-        return Math.random() < 0.5;
+    public interface AvailabilityCallback {
+        void onResult(boolean available);
+        void onError(String error);
+    }
+
+    private void checkMenusAvailability(AvailabilityCallback callback) {
+        new Thread(() -> {
+            String[] urls = {
+                    "https://foodmarket-eth.sv-restaurant.ch/de/menuplaene-foodmarket/green-day/",
+                    "https://foodmarket-eth.sv-restaurant.ch/de/menuplaene-foodmarket/grill-bbq/",
+                    "https://foodmarket-eth.sv-restaurant.ch/de/menuplaene-foodmarket/pizza-pasta/"
+            };
+            try {
+                for (String url : urls) {
+                    Document doc = Jsoup.connect(url).get();
+                    Element startElement = doc.getElementById("menu_plan_tab1");
+                    Element endElement = doc.getElementById("menu_plan_tab2");
+                    if (startElement != null && endElement != null) {
+                        String text = extractTextBetweenElements(startElement, endElement).toLowerCase();
+                        if (text.contains("pommes") || text.contains("fries")) {
+                            callback.onResult(true);
+                            return;
+                        }
+                    }
+                }
+                callback.onResult(false);
+            } catch (Exception e) {
+                e.printStackTrace();
+                callback.onError("Failed to fetch the page: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private String extractTextBetweenElements(Element start, Element end) {
+        StringBuilder sb = new StringBuilder();
+        Element current = start;
+        while (current != end && current != null) {
+            sb.append(current.text());
+            current = current.nextElementSibling();
+        }
+        return sb.toString();
     }
 }
